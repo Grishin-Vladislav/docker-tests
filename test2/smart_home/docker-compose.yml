@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  django-app:
+    build: .
+    container_name: django_app
+    command: gunicorn smart_home.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - django-statics:/usr/src/app/staticfiles
+    expose:
+      - 8000
+    restart: unless-stopped
+    depends_on: 
+      - db
+
+  db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    ports:
+        - 8001:5432
+    volumes:
+        - db:/var/lib/postgresql/data
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_NAME}
+
+  nginx:
+    build: ./nginx
+    ports:
+      - ${APP_PORT}:80
+    volumes:
+      - django-statics:/usr/src/app/staticfiles
+    depends_on:
+      - django-app
+
+volumes:
+  db:
+    driver: local
+  django-statics:
+    driver: local
